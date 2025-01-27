@@ -1,41 +1,46 @@
-import eruda from 'eruda';
-eruda.init();
+//import eruda from 'eruda';
 
-const state = (runstate) => ({
-  run: runstate,
-
-  map: (f) => state((s) => {
-    const [newstate, value] = runstate(s);
-    return [newstate, f(value)];
-  }),
-
-  flatmap: (f) => state((s) => {
-    const [newstate, value] = runstate(s);
-    return f(value).run(newstate); // Ensure f(value) returns a valid state
-  }),
-
-  pipe: function (...fns) {
-    return fns.reduce((acc, fn) => acc.flatmap(fn), this);
-  },
-  fork: function (...fns) {
-    return null
-  }
+const Identity = x => ({
+  fold: () => x,
+  map: f => Identity.of(f(x)),
+  chain: f => f(x),
 });
 
-const settings = {
-  eruda: false
+const IO = effect => ({
+  run: () => effect(),
+  map: f => IO(() => effect().then(f)),
+  chain: f => IO(() => effect().then(x => f(x).run())),
+});
+
+IO.of = x => IO(() => Promise.resolve(x));
+
+const log = value => IO(() => {
+  console.log(value);
+  return Promise.resolve();
+});
+
+const erudaInit = type => IO(() => {
+  type.instance.init();
+  return Promise.resolve(type);
+});
+
+const erudaImport = type => IO(() => 
+  import('eruda').then(module => {
+    type.instance = module.default;
+    return type;
+  })
+);
+
+const Eruda = {
+  enabled: true,
+  instance: null
 };
 
-// Example transformation functions
-const increment = (n) => state((s) => [s + 1, n + 1]);
-const double = (n) => state((s) => [s + 2, n * 2]);
+const pipe = IO.of(Eruda)
+  .chain(x => erudaImport(x))
+  .chain(x => erudaInit(x))
+  .chain(x => log(x));
 
-// Using the pipe function
-const initialState = 0;
-const computation = state((s) => [s, 0])
-  .pipe(increment, double)
+pipe.run().catch(e => console.error(e));
 
-const [finalState, result] = computation.run(initialState);
-
-console.log(`Final State: ${finalState}, Result: ${result}`);
-
+document.body.style.backgroundColor = '#333';
