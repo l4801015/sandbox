@@ -1,11 +1,3 @@
-//import eruda from 'eruda';
-
-const Identity = x => ({
-  fold: () => x,
-  map: f => Identity.of(f(x)),
-  chain: f => f(x),
-});
-
 const IO = effect => ({
   run: () => effect(),
   map: f => IO(() => effect().then(f)),
@@ -16,7 +8,7 @@ IO.of = x => IO(() => Promise.resolve(x));
 
 const log = value => IO(() => {
   console.log(value);
-  return Promise.resolve();
+  return Promise.resolve(value);
 });
 
 const erudaInit = type => IO(() => {
@@ -31,16 +23,36 @@ const erudaImport = type => IO(() =>
   })
 );
 
+const colorBackground = type => IO(() => {
+  const background = type;
+  document.body.style.backgroundColor = background.getColor();
+  return Promise.resolve(type);
+});
+
 const Eruda = {
   enabled: true,
   instance: null
 };
 
-const pipe = IO.of(Eruda)
+const Background = () => {
+  let color = '#333';
+  return {
+    getColor: () => color,
+  }
+}
+
+const eruda = IO.of(Eruda)
   .chain(x => erudaImport(x))
   .chain(x => erudaInit(x))
   .chain(x => log(x));
 
-pipe.run().catch(e => console.error(e));
+const background = IO.of(Background)
+  .chain(x => colorBackground(x))
+  .chain(x => log(x));
 
-document.body.style.backgroundColor = '#333';
+const main = async () => {
+  await eruda.run().catch(e => console.error(e));
+  await background.run().catch(e => console.error(e));
+};
+
+main();
