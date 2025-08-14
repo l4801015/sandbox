@@ -1,4 +1,1 @@
-{
-  "eruda initialization": "Write a minimal ES-module entry file (src/index.js) that imports the 'eruda' package from npm and immediately initializes it with a single call."
-}
-
+Create a minimal JavaScript module that auto-initializes the Eruda debugging tool on load by calling `eruda.init()`, using `import eruda from 'eruda'` to pull the library from npm. Do not export eruda – the module should only initialize the tool. The output code must be **minified** (single line, no whitespace/comments) and output **as raw executable code** (not wrapped in quotes or string literals).
